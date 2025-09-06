@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Task Manager</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #89f7fe, #66a6ff);
+      color: #333;
+      transition: background 0.3s;
+    }
+    header {
+      background: #fff;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .container {
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+    .task-input {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .task-input input, .task-input select {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 1rem;
+    }
+    .task-input button {
+      padding: 12px 18px;
+      background: #6c5ce7;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .task-input button:hover {
+      background: #5a4dcf;
+    }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 15px 0;
+    }
+    .tabs button {
+      border: none;
+      background: #fff;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    .tabs button.active, .tabs button:hover {
+      background: #6c5ce7;
+      color: white;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background: #fff;
+      margin: 12px 0;
+      padding: 15px;
+      border-radius: 15px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: transform 0.2s;
+    }
+    li:hover {
+      transform: scale(1.02);
+    }
+    li.completed span {
+      text-decoration: line-through;
+      color: gray;
+    }
+    .buttons button {
+      margin-left: 8px;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .complete { background: #55efc4; }
+    .edit { background: #ffeaa7; }
+    .delete { background: #ff7675; color: white; }
+    .progress-container {
+      background: #ddd;
+      border-radius: 10px;
+      height: 15px;
+      margin: 20px 0;
+    }
+    .progress-fill {
+      height: 15px;
+      background: #6c5ce7;
+      border-radius: 10px;
+      width: 0%;
+      transition: width 0.4s;
+    }
+    .fab {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      background: #6c5ce7;
+      color: white;
+      font-size: 1.8rem;
+      border-radius: 50%;
+      padding: 15px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: 0.3s;
+    }
+    .fab:hover { background: #5a4dcf; }
+    .quote {
+      text-align: center;
+      font-style: italic;
+      margin-top: 15px;
+      color: #2d3436;
+    }
+  </style>
+</head>
+<body>
+  <header>📚 Student Task Manager</header>
+  <div class="container">
+    <div class="task-input">
+      <input type="text" id="taskInput" placeholder="Enter task (e.g., Finish Math Homework ✏️)">
+      <select id="priority">
+        <option value="low">🟢 Low</option>
+        <option value="medium">🟡 Medium</option>
+        <option value="high">🔴 High</option>
+      </select>
+      <button onclick="addTask()">Add</button>
+    </div>
+
+    <div class="tabs">
+      <button onclick="setFilter('all')" id="tab-all" class="active">All</button>
+      <button onclick="setFilter('pending')" id="tab-pending">Pending</button>
+      <button onclick="setFilter('completed')" id="tab-completed">Completed</button>
+    </div>
+
+    <div class="progress-container">
+      <div class="progress-fill" id="progress"></div>
+    </div>
+
+    <ul id="taskList"></ul>
+    <div class="quote" id="quote"></div>
+  </div>
+
+  <button class="fab" onclick="focusInput()">➕</button>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    let filter = "all";
+    const quotes = [
+      "Great work! Keep it up 🎉",
+      "Small steps lead to big achievements 🚀",
+      "You’re smarter than you think 💡",
+      "Study hard, dream big ✨",
+      "Consistency beats motivation 💪"
+    ];
+
+    function renderTasks() {
+      const taskList = document.getElementById("taskList");
+      taskList.innerHTML = "";
+      const filtered = tasks.filter(t => 
+        filter === "all" ? true : filter === "completed" ? t.completed : !t.completed
+      );
+
+      filtered.forEach((task, index) => {
+        const li = document.createElement("li");
+        li.className = task.completed ? "completed" : "";
+        li.innerHTML = `
+          <span>${task.text} <small>[${task.priority}]</small></span>
+          <div class="buttons">
+            <button class="complete" onclick="toggleComplete(${index})">✔</button>
+            <button class="edit" onclick="editTask(${index})">✎</button>
+            <button class="delete" onclick="deleteTask(${index})">✖</button>
+          </div>
+        `;
+        taskList.appendChild(li);
+      });
+      updateProgress();
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    function addTask() {
+      const input = document.getElementById("taskInput");
+      const text = input.value.trim();
+      const priority = document.getElementById("priority").value;
+      if (!text) return alert("Enter a task!");
+      tasks.push({ text, completed: false, priority });
+      input.value = "";
+      renderTasks();
+    }
+
+    function toggleComplete(index) {
+      tasks[index].completed = !tasks[index].completed;
+      renderTasks();
+      if (tasks[index].completed) {
+        document.getElementById("quote").innerText = quotes[Math.floor(Math.random() * quotes.length)];
+        confettiEffect();
+      }
+    }
+
+    function editTask(index) {
+      const newText = prompt("Edit task:", tasks[index].text);
+      if (newText !== null && newText.trim() !== "") {
+        tasks[index].text = newText;
+        renderTasks();
+      }
+    }
+
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      renderTasks();
+    }
+
+    function updateProgress() {
+      const total = tasks.length;
+      const completed = tasks.filter(t => t.completed).length;
+      const percent = total ? Math.round((completed / total) * 100) : 0;
+      document.getElementById("progress").style.width = percent + "%";
+    }
+
+    function setFilter(value) {
+      filter = value;
+      document.querySelectorAll(".tabs button").forEach(btn => btn.classList.remove("active"));
+      document.getElementById("tab-" + value).classList.add("active");
+      renderTasks();
+    }
+
+    function focusInput() {
+      document.getElementById("taskInput").focus();
+    }
+
+    // 🎉 Confetti Effect
+    function confettiEffect() {
+      const duration = 1000;
+      const end = Date.now() + duration;
+      (function frame() {
+        const colors = ["#6c5ce7","#55efc4","#ffeaa7","#ff7675","#74b9ff"];
+        const confetti = document.createElement("div");
+        confetti.style.position = "fixed";
+        confetti.style.left = Math.random() * window.innerWidth + "px";
+        confetti.style.top = "-10px";
+        confetti.style.width = "10px";
+        confetti.style.height = "10px";
+        confetti.style.background = colors[Math.floor(Math.random()*colors.length)];
+        confetti.style.borderRadius = "50%";
+        confetti.style.opacity = "0.8";
+        confetti.style.transition = "transform 1s linear, top 1s linear";
+        document.body.appendChild(confetti);
+        setTimeout(() => {
+          confetti.style.top = window.innerHeight + "px";
+          confetti.style.transform = "rotate(360deg)";
+        }, 10);
+        setTimeout(() => confetti.remove(), 1000);
+        if (Date.now() < end) requestAnimationFrame(frame);
+      })();
+    }
+
+    renderTasks();
+  </script>
+</body>
+</html>
